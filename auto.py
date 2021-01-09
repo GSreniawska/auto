@@ -1,62 +1,63 @@
-import time
-import RPi.GPIO as GPIO
-from rplidar import RPLidar
+# This programe used to demonstare how to use Loch Antiphase with Hat-MDD10
+# AN pin will act as sterring to control direction
+# DIG pin will act to ON/OFF motor output.
 
-GPIO.setmode(GPIO.BOARD)
-RIGHT_MOVE_PIN = 16
-RIGHT_POWER_PWM_PIN = 12
-LEFT_MOVE_PIN = 18
-LEFT_POWER_PIN = 13
-PORT_NAME = '/dev/ttyUSB0'
-LIDAR = RPLidar(PORT_NAME)
+import RPi.GPIO as GPIO  # using Rpi.GPIO module
+from time import sleep  # import function sleep for delay
+
+GPIO.setmode(GPIO.BCM)  # GPIO numbering
+GPIO.setwarnings(False)  # enable warning from GPIO
+AN2 = 13  # set pwm2 pin on MD10-Hat
+AN1 = 12  # set pwm1 pin on MD10-hat
+DIG2 = 24  # set dir2 pin on MD10-Hat
+DIG1 = 26  # set dir1 pin on MD10-Hat
+GPIO.setup(AN2, GPIO.OUT)  # set pin as output
+GPIO.setup(AN1, GPIO.OUT)  # set pin as output
+GPIO.setup(DIG2, GPIO.OUT)  # set pin as output
+GPIO.setup(DIG1, GPIO.OUT)  # set pin as output
+sleep(1)  # delay for 1 seconds
+p1 = GPIO.PWM(DIG1, 100)  # set pwm for M1
+p2 = GPIO.PWM(DIG2, 100)  # set pwm for M2
+
+try:
+    while True:
+        print("Forward")  # display "Forward" when programe run
+        GPIO.output(AN1, GPIO.HIGH)  # set AN1 as HIGH, M1B will turn ON
+        GPIO.output(AN2, GPIO.HIGH)  # set AN2 as HIGH, M2B will turn ON
+        p1.start(0)  # set Direction for M1
+        p2.start(0)  # set Direction for M2
+        sleep(2)  # delay for 2 second
+
+        print("Left")
+        GPIO.output(AN1, GPIO.HIGH)
+        GPIO.output(AN2, GPIO.HIGH)
+        p1.start(100)
+        p2.start(100)
+        sleep(2)
+
+        print("Right")
+        GPIO.output(AN1, GPIO.HIGH)
+        GPIO.output(AN2, GPIO.HIGH)
+        p1.start(0)
+        p2.start(100)
+        sleep(2)
+
+        print("Backward")
+        GPIO.output(AN1, GPIO.HIGH)
+        GPIO.output(AN2, GPIO.HIGH)
+        p1.start(100)
+        p2.start(0)
+        sleep(2)
+
+        print("STOP")
+        GPIO.output(AN1, GPIO.LOW)  # set AN1 as LOW, M1B will STOP
+        GPIO.output(AN2, GPIO.LOW)  # set AN2 as HIGH, M2B will STOP
+        p1.start(0)  # Direction can ignore
+        p2.start(0)  # Direction can ignore
+        sleep(3)  # delay for 3 second
 
 
-def setup():
-    GPIO.setup(RIGHT_MOVE_PIN, GPIO.OUT)  # right side
-    GPIO.setup(RIGHT_POWER_PWM_PIN, GPIO.OUT)
-    GPIO.setup(LEFT_MOVE_PIN, GPIO.OUT)  # left side
-    GPIO.setup(LEFT_POWER_PIN, GPIO.OUT)
-    GPIO.setwarnings(False)
-
-    # setting PWMs
-    power = 0
-    motor_right_velocity = GPIO.PWM(RIGHT_POWER_PWM_PIN, 50)
-    motor_left_velocity = GPIO.PWM(LEFT_POWER_PIN, 50)
-    motor_right_velocity.start(power)
-    motor_left_velocity.start(power)
-    # setup lidar sensor
-    PORT_NAME = '/dev/ttyUSB0'
-    LIDAR = RPLidar(PORT_NAME)
-
-
-def go_forward() -> None:
-    power = 20
-    RIGHT_POWER_PWM_PIN.ChangeDutyCycle(power)
-    LEFT_POWER_PIN.ChangeDutyCycle(power)
-    GPIO.output(RIGHT_MOVE_PIN, GPIO.LOW)
-    GPIO.output(LEFT_MOVE_PIN, GPIO.LOW)
-
-
-def lidar_made_full_turn(previous_angle: float, actual_angle: float) -> bool:
-    return previous_angle - actual_angle >= 50.
-
-
-def main():
-    duration = 0
-    start = time.time()
-    while duration >= 10.:
-        for measurement in LIDAR.iter_measurments():
-            power = 10
-            if measurement[3] / 10. <= 30.:
-                RIGHT_POWER_PWM_PIN.ChangeDutyCycle(power)
-                LEFT_POWER_PIN.ChangeDutyCycle(power)
-                GPIO.output(RIGHT_MOVE_PIN, GPIO.LOW)
-                GPIO.output(LEFT_MOVE_PIN, GPIO.HIGH)
-            else:
-                go_forward()
-        end = time.time()
-        duration = end - start
-
-
-if __name__=="__main__":
-    main()
+except:  # exit programe when keyboard interupt
+    p1.start(0)  # set speed to 0
+    p2.start(0)  # set speed to 0
+# Control+X to save and exit
